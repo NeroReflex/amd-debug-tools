@@ -33,6 +33,7 @@ from amd_debug.failures import (
 from amd_debug.validator.capture import CaptureHelpers
 from amd_debug.validator.analysis import AnalysisHelpers
 from amd_debug.validator.suspend import SuspendHelpers
+from amd_debug.validator.intel import IntelCaptureHelpers
 from amd_debug.validator_headers import Headers
 
 
@@ -68,7 +69,7 @@ def pm_debugging(func):
 
 
 class SleepValidator(
-    CaptureHelpers, AnalysisHelpers, SuspendHelpers, AmdTool
+    CaptureHelpers, AnalysisHelpers, SuspendHelpers, IntelCaptureHelpers, AmdTool
 ):
     """Class to validate the sleep state"""
 
@@ -112,6 +113,9 @@ class SleepValidator(
         self.wakeup_count = {}
         self.page_faults = []
         self.notify_devices = []
+        self.pmc_core = None
+        self.s0ix_residency_before = None
+        self.s0ix_substates_before = {}
 
     def needs_irq1_workaround(self) -> bool:
         """Check if the platform needs the IRQ1 workaround"""
@@ -170,6 +174,9 @@ class SleepValidator(
             self.capture_lid,
             self.check_rtc_cmos,
             self.capture_hw_sleep,
+            self.capture_intel_s0ix_residency,
+            self.capture_intel_substate_delta,
+            self.capture_intel_s0ix_blockers,
             self.capture_battery,
             self.capture_power_rails,
             self.capture_amdgpu_ips_status,
@@ -205,6 +212,7 @@ class SleepValidator(
         self.capture_amdgpu_ips_status()
         self.capture_thermal()
         self.capture_input_wakeup_count()
+        self.capture_intel_s0ix()
         if self.bios_debug:
             self.acpica.trace_bios()
         else:
