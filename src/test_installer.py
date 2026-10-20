@@ -236,6 +236,102 @@ class TestInstaller(unittest.TestCase):
         self.assertTrue(ret)
 
     @patch("builtins.print")
+    @patch("amd_debug.installer.get_distro", return_value="ubuntu")
+    @patch("os.execvp", return_value=None)
+    @patch("subprocess.check_call", return_value=0)
+    @patch("subprocess.call", return_value=1)
+    def test_install_turbostat_ubuntu(
+        self, _mock_call, _mock_check_call, _mock_distro, _fake_sudo, _mock_print
+    ):
+        """Test install requirements function"""
+        self.installer.set_requirements("turbostat")
+        ret = self.installer.install_dependencies()
+        _mock_check_call.assert_called_once_with(["apt", "install", "turbostat"])
+        self.assertTrue(ret)
+
+    @patch("builtins.print")
+    @patch("amd_debug.installer.get_distro", return_value="fedora")
+    @patch(
+        "builtins.open", new_callable=mock_open, read_data="VARIANT_ID=workstation\n"
+    )
+    @patch("os.execvp", return_value=None)
+    @patch("subprocess.check_call", return_value=0)
+    @patch("subprocess.call", return_value=1)
+    def test_install_turbostat_fedora(
+        self,
+        _mock_call,
+        _mock_check_call,
+        _mock_variant,
+        _mock_distro,
+        _fake_sudo,
+        _mock_print,
+    ):
+        """Test install requirements function"""
+        self.installer.set_requirements("turbostat")
+        ret = self.installer.install_dependencies()
+        _mock_check_call.assert_called_once_with(["dnf", "install", "-y", "turbostat"])
+        self.assertTrue(ret)
+
+    @patch("builtins.print")
+    @patch("amd_debug.installer.get_distro", return_value="arch")
+    @patch("os.execvp", return_value=None)
+    @patch("subprocess.check_call", return_value=0)
+    @patch("subprocess.call", return_value=1)
+    def test_install_turbostat_arch(
+        self,
+        _mock_call,
+        _mock_check_call,
+        _mock_distro,
+        _fake_sudo,
+        _mock_print,
+    ):
+        """Test install requirements function"""
+        self.installer.set_requirements("turbostat")
+        ret = self.installer.install_dependencies()
+        _mock_check_call.assert_called_once_with(["pacman", "-Sy", "turbostat"])
+        self.assertTrue(ret)
+
+    @patch("builtins.print")
+    @patch("amd_debug.installer.get_distro", return_value="ubuntu")
+    @patch("os.execvp", return_value=None)
+    @patch("subprocess.check_call", return_value=0)
+    @patch("subprocess.call", return_value=0)
+    def test_install_turbostat_already_present(
+        self, _mock_call, _mock_check_call, _mock_distro, _fake_sudo, _mock_print
+    ):
+        """Test that turbostat is not installed when it is already present"""
+        self.installer.set_requirements("turbostat")
+        ret = self.installer.install_dependencies()
+        _mock_check_call.assert_not_called()
+        self.assertTrue(ret)
+
+    @patch("builtins.print")
+    @patch("amd_debug.installer.get_distro", return_value="ubuntu")
+    @patch("os.execvp", return_value=None)
+    @patch("subprocess.check_call", return_value=0)
+    @patch("subprocess.call", side_effect=FileNotFoundError)
+    def test_install_turbostat_missing_filenotfound(
+        self, _mock_call, _mock_check_call, _mock_distro, _fake_sudo, _mock_print
+    ):
+        """When turbostat binary is missing the installer still tries"""
+        self.installer.set_requirements("turbostat")
+        ret = self.installer.install_dependencies()
+        _mock_check_call.assert_called_once_with(["apt", "install", "turbostat"])
+        self.assertTrue(ret)
+
+    @patch("builtins.print")
+    @patch("amd_debug.installer.get_distro", return_value="gentoo")
+    @patch("os.execvp", return_value=None)
+    @patch("subprocess.call", return_value=1)
+    def test_install_turbostat_gentoo(
+        self, _mock_call, _mock_distro, _fake_sudo, _mock_print
+    ):
+        """Test install requirements function on an unsupported distro"""
+        self.installer.set_requirements("turbostat")
+        ret = self.installer.install_dependencies()
+        self.assertTrue(ret)
+
+    @patch("builtins.print")
     @patch("os.path.exists", return_value=False)
     @patch("os.execvp", return_value=None)
     @patch("amd_debug.installer.get_distro", return_value="gentoo")

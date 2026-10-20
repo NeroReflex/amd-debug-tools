@@ -27,6 +27,7 @@ class Headers:  # pylint: disable=too-few-public-methods
     MissingEdidDecode = "EDID decoding tool `edid-decode` is missing"
     MissingDiEdidDecode = "EDID decoding tool `di-edid-decode` is missing"
     MissingEthtool = "Ethtool is missing"
+    MissingTurbostat = "Turbostat is missing"
     InstallAction = "Attempting to install"
     MissingFwupd = "Firmware update library `fwupd` is missing"
     MissingPyudev = "Udev access library `pyudev` is missing"
@@ -190,6 +191,18 @@ class EdidDecodePackage(DistroPackage):
         )
 
 
+class TurbostatPackage(DistroPackage):
+    """Turbostat package"""
+
+    def __init__(self):
+        super().__init__(
+            deb="turbostat",
+            rpm="turbostat",
+            arch="turbostat",
+            message=Headers.MissingTurbostat,
+        )
+
+
 class DisplayInfoPackage(DistroPackage):
     """display info package"""
 
@@ -273,6 +286,20 @@ class Installer(AmdTool):
                 ethtool = False
             if not ethtool:
                 package = EthtoolPackage()
+                if not package.install():
+                    return False
+        if "turbostat" in self.requirements:
+            try:
+                turbostat = (
+                    subprocess.call(
+                        ["turbostat", "--version"], stdout=subprocess.DEVNULL
+                    )
+                    == 0
+                )
+            except FileNotFoundError:
+                turbostat = False
+            if not turbostat:
+                package = TurbostatPackage()
                 if not package.install():
                     return False
         # can be satisified by either edid-decode or di-edid-decode
@@ -459,6 +486,7 @@ def install_dep_superset() -> None | int:
         "seaborn",
         "tabulate",
         "edid-decode",
+        "turbostat",
     )
     ret = tool.install_dependencies()
     if ret:
