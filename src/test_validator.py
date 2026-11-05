@@ -1164,12 +1164,13 @@ class TestValidator(unittest.TestCase):
         mock_write.assert_not_called()
         mock_close.assert_not_called()
 
+    @patch("amd_debug.validator.suspend.suspend_units_enabled", return_value=False)
     @patch("os.path.exists")
     @patch("os.open")
     @patch("os.write")
     @patch("os.close")
     def test_toggle_nvidia_success(
-        self, mock_close, mock_write, mock_open, mock_exists
+        self, mock_close, mock_write, mock_open, mock_exists, _mock_units
     ):
         """Test toggle_nvidia writes value and returns True on success"""
         mock_exists.return_value = True
@@ -1187,12 +1188,13 @@ class TestValidator(unittest.TestCase):
                 "Wrote b'suspend' to NVIDIA driver"
             )
 
+    @patch("amd_debug.validator.suspend.suspend_units_enabled", return_value=False)
     @patch("os.path.exists")
     @patch("os.open")
     @patch("os.write")
     @patch("os.close")
     def test_toggle_nvidia_oserror(
-        self, mock_close, mock_write, mock_open, mock_exists
+        self, mock_close, mock_write, mock_open, mock_exists, _mock_units
     ):
         """Test toggle_nvidia handles OSError and returns False"""
         mock_exists.return_value = True
@@ -1209,6 +1211,33 @@ class TestValidator(unittest.TestCase):
             mock_write.assert_called_once_with(99, b"resume")
             mock_close.assert_called_once_with(99)
             mock_record_cycle_data.assert_called_once()
+
+    @patch("amd_debug.validator.suspend.suspend_units_enabled", return_value=True)
+    @patch("os.path.exists")
+    @patch("os.open")
+    @patch("os.write")
+    @patch("os.close")
+    def test_toggle_nvidia_units_enabled(
+        self, mock_close, mock_write, mock_open, mock_exists, _mock_units
+    ):
+        """Test that the driver is not notified when the systemd units are enabled
+
+        The units notify the driver of the suspend and resume events
+        themselves, so a second notification would tell the driver about
+        the event twice.
+        """
+        mock_exists.return_value = True
+        with patch.object(
+            self.validator.db, "record_debug"
+        ) as mock_record_debug:
+            result = self.validator.toggle_nvidia(b"suspend")
+            self.assertTrue(result)
+            mock_open.assert_not_called()
+            mock_write.assert_not_called()
+            mock_close.assert_not_called()
+            mock_record_debug.assert_called_once_with(
+                "NVIDIA systemd units are enabled, not notifying the driver manually"
+            )
 
     def test_toggle_pm_debug(self):
         """toggle_pm_debug opens and writes '1' or '0'"""
