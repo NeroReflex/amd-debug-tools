@@ -119,17 +119,28 @@ state during s2idle, so the following is checked:
   `/proc/driver/nvidia/gpus/<BDF>/power`.  A GPU that doesn't support it
   can't be powered down during s2idle.
 
-* The `nvidia-suspend`, `nvidia-resume` and `nvidia-hibernate` systemd units
-  are enabled
+* The driver is notified of the suspend and resume events
 
-  These units are what notify the NVIDIA driver of the suspend and resume
-  events.  Without them the driver doesn't get the chance to save and
-  restore its state, which can cause the system to fail to resume.  They
-  are installed and enabled by the NVIDIA installer:
+  The preferred method is the kernel sleep notifiers, which are active
+  when the `NVreg_UseKernelSuspendNotifiers` module parameter is set.
+  The driver then handles saving and restoring its state itself:
+
+  ```
+  # /etc/modprobe.d/nvidia.conf
+  options nvidia NVreg_UseKernelSuspendNotifiers=1
+  ```
+
+  The legacy method uses the `nvidia-suspend`, `nvidia-resume` and
+  `nvidia-hibernate` systemd units, which notify the driver through
+  `/proc/driver/nvidia/suspend`.  They can be enabled with:
 
   ```
   sudo systemctl enable nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service
   ```
+
+  When neither method is configured the tool reports the legacy method
+  as a possible improvement rather than an error, since recent drivers
+  handle the suspend transitions internally.
 
 * The `nvidia-powerd` daemon is available
 
